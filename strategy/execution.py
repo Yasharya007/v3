@@ -20,8 +20,8 @@ def get_total_equity(portfolio, cash):
 
             data = yf.download(
                 ticker,
-                period="1mo",
-                interval="1wk",
+                period="1d",
+                interval="15m",
                 progress=False
             )
 
@@ -29,7 +29,7 @@ def get_total_equity(portfolio, cash):
                 continue
 
             current_price = float(
-                data["Close"].iloc[-1].item()
+                data["Close"].dropna().iloc[-1].item()
             )
 
             portfolio_value += (
@@ -101,12 +101,12 @@ def execute_actions():
 
             data = yf.download(
                 ticker,
-                period="5d",
-                interval="1d",
+                period="1d",
+                interval="15m",
                 progress=False
             )
 
-            exit_price = float(data["Close"].iloc[-1].item())
+            exit_price = float(data["Close"].dropna().iloc[-1].item())
 
             shares = float(
                 holding["Shares"].iloc[0]
@@ -212,13 +212,13 @@ def execute_actions():
 
             data = yf.download(
                 ticker,
-                period="5d",
-                interval="1d",
+                period="1d",
+                interval="15m",
                 progress=False
             )
 
             entry_price = float(
-                data["Close"].iloc[-1].item()
+                data["Close"].dropna().iloc[-1].item()
             )
 
             allocation = (

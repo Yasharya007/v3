@@ -17,13 +17,13 @@ for idx in portfolio.index:
 
         data = yf.download(
             ticker,
-            period="5d",
-            interval="1d",
+            period="1d",
+            interval="15m",
             progress=False
         )
 
         current_price = float(
-            data["Close"].iloc[-1].item()
+            data["Close"].dropna().iloc[-1].item()
         )
 
         portfolio.loc[
