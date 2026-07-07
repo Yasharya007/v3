@@ -4,47 +4,48 @@ from config import (
 )
 
 
-def calculate_sma20(df):
-
-    return (
-        df["Close"]
-        .rolling(20)
-        .mean()
-    )
-
-
-def calculate_volume_sma(df):
-
-    return (
-        df["Volume"]
-        .rolling(10)
-        .mean()
-    )
-
-
-def calculate_momentum_score(df):
+def get_technical_metrics(df):
 
     idx = len(df) - 1
 
-    ret_4 = (
+    price = float(
         df["Close"].iloc[idx]
-        /
-        df["Close"].iloc[idx - 4]
+    )
+
+    volume = float(
+        df["Volume"].iloc[idx]
+    )
+
+    sma20 = (
+        df["Close"]
+        .rolling(20)
+        .mean()
+        .iloc[idx]
+    )
+
+    volume_sma = (
+        df["Volume"]
+        .rolling(10)
+        .mean()
+        .iloc[idx]
+    )
+
+    ret_4 = (
+        price /
+        float(df["Close"].iloc[idx - 4])
     ) - 1
 
     ret_8 = (
-        df["Close"].iloc[idx]
-        /
-        df["Close"].iloc[idx - 8]
+        price /
+        float(df["Close"].iloc[idx - 8])
     ) - 1
 
     ret_12 = (
-        df["Close"].iloc[idx]
-        /
-        df["Close"].iloc[idx - 12]
+        price /
+        float(df["Close"].iloc[idx - 12])
     ) - 1
 
-    return (
+    momentum_score = (
 
         0.5 * ret_4 +
 
@@ -54,28 +55,31 @@ def calculate_momentum_score(df):
 
     )
 
+    return {
 
-def is_above_sma(price, sma20):
+        "Price": price,
 
-    return price > sma20
+        "Volume": volume,
 
+        "SMA20": float(sma20),
 
-def is_volume_breakout(
-    volume,
-    volume_sma
-):
+        "VolumeSMA": float(volume_sma),
 
-    return (
+        "AboveSMA": (
+            price > sma20
+        ),
 
-        volume
+        "VolumeBreakout": (
+            volume >
+            volume_sma *
+            VOLUME_MULTIPLIER
+        ),
 
-        >
+        "MomentumScore":
+        momentum_score,
 
-        volume_sma * VOLUME_MULTIPLIER
+        "MomentumOK":
+        momentum_score >
+        SCORE_THRESHOLD
 
-    )
-
-
-def passes_momentum_filter(score):
-
-    return score > SCORE_THRESHOLD
+    }

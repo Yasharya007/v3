@@ -1,8 +1,10 @@
 from datetime import datetime
 from strategy.portfolio_manager import (
     process_existing_positions,
+    generate_rotation_actions,
     generate_buy_actions,
-    save_actions,save_portfolio
+    save_actions,
+    save_portfolio
 )
 from strategy.system_state import (
     already_processed,
@@ -84,9 +86,31 @@ print(
 portfolio, sells = (
     process_existing_positions()
 )
+
 save_portfolio(portfolio)
+
+rotation_sells = (
+    generate_rotation_actions(
+        week_date
+    )
+)
+
+sells.extend(
+    rotation_sells
+)
+pending_sells = (
+
+    len(sells)
+
+    +
+
+    len(rotation_sells)
+
+)
 buys = (
-    generate_buy_actions()
+    generate_buy_actions(
+        pending_sells=pending_sells
+    )
 )
 
 actions = save_actions(

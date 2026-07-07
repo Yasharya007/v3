@@ -1,4 +1,5 @@
 import pandas as pd
+from sklearn import metrics
 import yfinance as yf
 
 from config import (
@@ -7,12 +8,7 @@ from config import (
 )
 
 from strategy.indicators import (
-    calculate_sma20,
-    calculate_volume_sma,
-    calculate_momentum_score,
-    is_above_sma,
-    is_volume_breakout,
-    passes_momentum_filter
+    get_technical_metrics
 )
 
 
@@ -61,32 +57,17 @@ def scan_candidates(
             if len(df) < 30:
                 continue
 
-            df["Vol_SMA"] = calculate_volume_sma(df)
-            df["SMA20"] = calculate_sma20(df)
+            metrics = get_technical_metrics(df)
 
-            idx = len(df) - 1
-
-            price = float(df["Close"].iloc[idx])
-            volume = float(df["Volume"].iloc[idx])
-
-            sma20 = float(df["SMA20"].iloc[idx])
-            volume_sma = float(df["Vol_SMA"].iloc[idx])
-
-            score = calculate_momentum_score(df)
-
-            above_sma = is_above_sma(
-                price,
-                sma20
-            )
-
-            volume_breakout = is_volume_breakout(
-                volume,
-                volume_sma
-            )
-
-            momentum_ok = passes_momentum_filter(
-                score
-            )
+            price = metrics["Price"]
+            
+            score = metrics["MomentumScore"]
+            
+            above_sma = metrics["AboveSMA"]
+            
+            volume_breakout = metrics["VolumeBreakout"]
+            
+            momentum_ok = metrics["MomentumOK"]
 
             if not above_sma:
                 continue
