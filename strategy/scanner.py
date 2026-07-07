@@ -1,12 +1,18 @@
 import pandas as pd
-import numpy as np
 import yfinance as yf
 
 from config import (
     ROE_THRESHOLD,
-    SCORE_THRESHOLD,
-    VOLUME_MULTIPLIER,
     PROFIT_MARGIN_THRESHOLD
+)
+
+from strategy.indicators import (
+    calculate_sma20,
+    calculate_volume_sma,
+    calculate_momentum_score,
+    is_above_sma,
+    is_volume_breakout,
+    passes_momentum_filter
 )
 
 
@@ -46,160 +52,107 @@ def scan_candidates(
 
             df = pd.DataFrame({
 
-                "Close":
-                close_prices[t],
-
-                "High":
-                high_prices[t],
-
-                "Volume":
-                volumes[t]
+                "Close": close_prices[t],
+                "High": high_prices[t],
+                "Volume": volumes[t]
 
             }).dropna()
 
             if len(df) < 30:
                 continue
 
-            df["Vol_SMA"] = (
-                df["Volume"]
-                .rolling(10)
-                .mean()
-            )
-
-            df["SMA20"] = (df["Close"].rolling(20).mean())
+            df["Vol_SMA"] = calculate_volume_sma(df)
+            df["SMA20"] = calculate_sma20(df)
 
             idx = len(df) - 1
 
-            price = float(
-                df["Close"].iloc[idx]
+            price = float(df["Close"].iloc[idx])
+            volume = float(df["Volume"].iloc[idx])
+
+            sma20 = float(df["SMA20"].iloc[idx])
+            volume_sma = float(df["Vol_SMA"].iloc[idx])
+
+            score = calculate_momentum_score(df)
+
+            above_sma = is_above_sma(
+                price,
+                sma20
             )
 
-            vol = float(
-                df["Volume"].iloc[idx]
+            volume_breakout = is_volume_breakout(
+                volume,
+                volume_sma
             )
 
-            vol_sma = float(
-                df["Vol_SMA"].iloc[idx]
+            momentum_ok = passes_momentum_filter(
+                score
             )
-            sma20 = float(
-                df["SMA20"].iloc[idx]
-            )
+
+            if not above_sma:
+                continue
+
+            if not volume_breakout:
+                continue
+
+            if not momentum_ok:
+                continue
+
+            row = fundamentals_df[
+                fundamentals_df["Ticker"] == t
+            ]
+
+            if len(row) == 0:
+                continue
+
+            margin = row.iloc[0]["Margin"]
+            roe = row.iloc[0]["ReturnOnEquity"]
+
+            if pd.isna(margin) or pd.isna(roe):
+                continue
+
             if (
-                price >sma20
+                margin < PROFIT_MARGIN_THRESHOLD
+                or
+                roe < ROE_THRESHOLD
             ):
+                continue
 
-                if (
-                    vol >
-                    vol_sma *
-                    VOLUME_MULTIPLIER
-                ):
+            candidates.append({
 
-                    ret_4 = (
-                        price /
-                        float(
-                            df["Close"]
-                            .iloc[idx-4]
-                        )
-                    ) - 1
+                "Ticker": t,
 
-                    ret_8 = (
-                        price /
-                        float(
-                            df["Close"]
-                            .iloc[idx-8]
-                        )
-                    ) - 1
+                "Price": price,
 
-                    ret_12 = (
-                        price /
-                        float(
-                            df["Close"]
-                            .iloc[idx-12]
-                        )
-                    ) - 1
+                "Score": score,
 
-                    score = (
+                "Margin": margin,
 
-                        0.5 * ret_4 +
+                "ROE": roe
 
-                        0.3 * ret_8 +
+            })
 
-                        0.2 * ret_12
-
-                    )
-
-                    if (
-                        score <=
-                        SCORE_THRESHOLD
-                    ):
-                        continue
-
-                    row = fundamentals_df[
-                        fundamentals_df["Ticker"]
-                        == t
-                    ]
-
-                    if len(row) == 0:
-                        continue
-
-                    margin = (
-                        row.iloc[0]["Margin"]
-                    )
-
-                    roe = (
-                        row.iloc[0]["ReturnOnEquity"]  
-                    )
-                    if pd.isna(margin):
-                        continue
-                    if pd.isna(roe):
-                        continue
-                    if (
-                        margin <
-                        PROFIT_MARGIN_THRESHOLD or roe < ROE_THRESHOLD
-                    ):
-                        continue
-
-                    candidates.append({
-
-                        "Ticker":
-                        t,
-
-                        "Price":
-                        price,
-
-                        "Score":
-                        score,
-
-                        "Margin":
-                        margin,
-                        "ROE":
-                        roe
-
-                    })
-
-        except:
+        except Exception:
 
             continue
 
-    candidates = sorted(
+    candidates.sort(
 
-        candidates,
-
-        key=lambda x:
-        x["Score"],
+        key=lambda x: x["Score"],
 
         reverse=True
 
     )
+
     print("\nDEBUG")
 
     print(
         "Universe:",
         len(tickers)
     )
-    
+
     print(
         "Candidates:",
         len(candidates)
     )
+
     return candidates

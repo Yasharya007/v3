@@ -5,7 +5,8 @@ from datetime import timedelta
 from config import (
     MAX_POSITIONS,
     POSITION_SIZE,
-    TRAILING_STOP
+    TRAILING_STOP,
+    MIN_HOLD_WEEKS
 )
 
 
@@ -64,6 +65,12 @@ def process_existing_positions():
     for idx in portfolio.index:
 
         ticker = portfolio.loc[idx, "Ticker"]
+        entry_date = pd.to_datetime(
+        portfolio.loc[idx, "Entry_Date"])
+        holding_weeks = (
+        pd.Timestamp.today().normalize()
+        - entry_date
+        ).days // 7
 
         try:
 
