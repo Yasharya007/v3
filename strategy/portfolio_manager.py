@@ -77,7 +77,7 @@ def process_existing_positions():
             if len(data) == 0:
                 continue
 
-            current_price = float(data["Close"].iloc[-1].item())
+            current_price = float(data["Close"].dropna().iloc[-1].item())
 
             old_stop = float(
                 portfolio.loc[idx,
