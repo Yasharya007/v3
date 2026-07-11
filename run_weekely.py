@@ -94,10 +94,6 @@ rotation_sells = (
         week_date
     )
 )
-
-sells.extend(
-    rotation_sells
-)
 pending_sells = (
 
     len(sells)
@@ -105,7 +101,9 @@ pending_sells = (
     +
 
     len(rotation_sells)
-
+)
+sells.extend(
+    rotation_sells
 )
 buys = (
     generate_buy_actions(
